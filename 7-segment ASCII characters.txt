@@ -1,0 +1,143 @@
+From: https://dkeenan.com/7-segment%20ASCII%20characters.txt
+A 7-segment Alphabet with a Unique Pattern for Every ASCII Character
+
+-- Dave Keenan, 29-Sep-2018
+
+Below is a complete reversible mapping from ASCII to 7-segment.
+
+It includes 7-segment glyphs for all non-printing characters except null,
+with the idea that this mapping could also be used for a chording
+keyboard, with 7 keys arranged like the segments of a 7-segment display.
+But for normal output, non-printing characters would not be shown.
+It could also be used in a manner similar to braille or seikoo.
+
+This mapping obeys the following principles:
+1. No two ASCII characters have the same shape.
+2. The decimal digits have their standard shapes.
+3. The other hexadecimal digits have their standard shapes 
+   as uppercase A C E and lowercase b d f.
+4. We don't assume a decimal point will be available.
+5. No shape strongly resembles a character it doesn't represent.
+6. These pairs must be mirror images of each other: <> () [] {} /\ bd pq.
+7. These pairs must be inversions of each other: nu mw NU MW `, ^v bp dq ft.
+8. The mw shapes must appear larger than the nu shapes. 
+
+Some emergent rules (or mnemonics) turn out to be:
+
+9. Where, in a conventional font, an upper/lower case pair have much the same
+shape, and cannot be distinguished by height in the 7-segment font,
+i.e. fF kK pP mM sS wW zZ, then in the 7-segment font, the most exploded one
+is the uppercase.
+
+10. The patterns for the non-printing characters that have their own key on
+a conventional keyboard, namely Esc, Tab, Delete (del), Backspace (bs),
+Return/Enter (cr), Page-down (ff) and Space (sp), are such that they can be
+typed on a 7-segment chording keyboard with one finger, and are located in
+the same relative position that they are on a conventional keyboard. See the
+keyboard diagram at the end of the article.
+
+11. Control characters sometimes have glyphs that are the mirror image of the
+corresponding printable character, either lowercase: ^c ^f ^t ^y
+or uppercase: ^J ^K ^R ^V.
+Others have glyphs that are the corresponding character (upper or lower case
+or both) with one or more segments missing: ^Aa ^b ^Dd ^Ee ^Gg ^p ^q ^Ss ^Z
+
+If you choose not to distinguish upper and lower case letters on output,
+to improve readability, the preferred glyph for each letter is indicated by
+a caret below it. These correspond to: AbCdEfGhiJkLMnopqrStuvWXyZ.
+Also for readability, Ss and Zz may be displayed using the same glyphs as 5
+and 2 respectively.
+      _                        _    _                   _              _    _ 
+      _   |     _     |  |_    _|  |      |  |_   |      |   _|   _|  | |     
+       |  | |   _|  | |   _     |    |            |_|  | |    |        _     |
+
+ 00   45   34   4C   16   68   47   25   02   60   3C   17   46   42   2B   05
+<nul> ^A   ^B   ^C   ^D   ^E   ^F   ^G  <bs> <tab>^J   ^K   <ff> <cr>  ^N   ^O
+
+           _              _                             _         _    _      
+| |  | |  | |  |     _|       | |        _|  |_|    |  |      |            |  
+|      |    |   _|   _|  |_|   _|  | |   _   |_   |_        |    |_   |     _ 
+
+ 32   26   27   2C   4E   1D   2E   14   4A   7A   1A   21   12   19   11   28
+ ^P   ^Q   ^R   ^S   ^T   ^U   ^V   ^W   ^X   ^Y   ^Z  <esc> ^\   ^]   ^^   ^_
+
+                     _                             _                          
+ _     |  | |  | |   _   |    |_|  |     _|  |_   |_|  |_         _         _|
+  |   _        | |   _     |  |_|       |_    _|       |     _|        _   |  
+
+ 44   0A   22   36   49   24   7E   20   5A   6C   63   70   0C   40   08   52
+<sp>  !    "    #    $    %    &    '    (    )    *    +    ,    -    .    /
+
+ _         _    _         _    _    _    _    _    _    _    _         _    _ 
+| |    |   _|   _|  |_|  |_   |_     |  |_|  |_|            |_    _    _|   _|
+|_|    |  |_    _|    |   _|  |_|    |  |_|   _|   _    _|        _        |  
+
+ 3F   06   5B   4F   66   6D   7D   07   7F   6F   09   0D   61   48   43   53
+ 0    1    2    3    4    5    6    7    8    9    :    ;    <    =    >    ?
+
+ _    _    _    _    _    _    _    _         _         _         _    _    _ 
+ _   |_|  | |  |      |  |_    _   |    |_|    |    |  |    |         | |  | |
+|_|  | |  |_   |_   |_|  |_   |    |_|  | |   _|  |_|  | |  |_   | |  | |   _|
+
+ 5D   77   3B   39   1F   79   51   3D   76   0F   1E   35   38   15   37   2F
+ @    A    B    C    D    E    F    G    H    I    J    K    L    M    N    O
+      ^         ^         ^         ^              ^         ^    ^
+ _    _    _    _    _                   _         _    _         _    _      
+  |  |_|  | |  |    |    | |  | |  | |   _|  |_|    |  |    |_     |  | |     
+|     _   |     _|  |    |_|  |_    _   | |  |    |_    _     |   _        |_ 
+
+ 13   6B   33   2D   31   3E   3A   2A   57   72   1B   29   64   0B   23   18
+ P    Q    R    S    T    U    V    W    X    Y    Z    [    \    ]    ^    _
+                ^                   ^    ^         ^
+ _    _                   _    _    _                   _         _           
+  |   _|  |_    _    _|  |_|  |_   |_   |_          |  |_   |     _    _    _ 
+     |_|  |_|  |_   |_|  |_   |      |  | |  |     _|  | |  |    | |  | |  |_|
+
+ 03   5F   7C   58   5E   7B   71   65   74   10   0E   75   30   55   54   5C
+ `    a    b    c    d    e    f    g    h    i    j    k    l    m    n    o
+           ^         ^         ^         ^    ^         ^              ^    ^
+ _    _         _                                  _    _         _    _    _ 
+|_|  |_|   _    _   |_        |_|  |_|   _|  |_|   _   |_         _|        _ 
+|      |  |     _|  |_   |_|        _   | |   _|  |_    _     |   _           
+
+ 73   67   50   4D   78   1C   62   6A   56   6E   59   69   04   4B   01   41
+ p    q    r    s    t    u    v    w    x    y    z    {    |    }    ~  <del> 
+ ^    ^    ^         ^    ^    ^              ^
+ 
+  __0_       _01_
+ 5    1    20   02
+ |__6_|     |_40_|
+ 4    2    10   04
+ |__3_|     |_08_|
+bit nums  bit values
+
+The diagram below shows a 7-key chording keyboard with its keys arranged like
+the segments of a 7-segment display. One finger can press 1, 2 or 3 keys at
+once.
+
+The diagram shows the finger placements for the 25 characters that can be
+typed with one finger, and the 8 characters that can be typed with two fingers
+diametrically-opposed. There are another 64 characters that can be typed with
+2 fingers. Only the following 30 characters require 3 fingers:
+^K ^N ^U ^V ^Y & 0 6 8 9 @ A B D G K M N O Q U V W X a e k m w y
+
+ %-------C---:---I-------^\
+ |       |       |       |
+ |      esc  ~   `       |
+ |       |       |       |
+ "   '   <--del-->  bs   "
+ |       |       |       |
+ |      tab      cr      |
+ |       |       |       |
+ #---l---+   -  ff---1---#
+ |       |       |       |
+ |       r       sp      |
+ |       |       |       |
+^W   i   c---=---^C  |   ^W
+ |       |       |       |
+ |       _   .   ,       |
+ |       |       |       |
+^\-------C---:---I-------%
+
+
+-- Dave Keenan, 29-Sep-2018
