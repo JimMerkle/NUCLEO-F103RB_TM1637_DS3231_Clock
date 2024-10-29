@@ -12,6 +12,13 @@
     PC10 (CLK)
     PC12 (DIO)
 		
+## 1us delay timer
+    
+    Using 16-bit timer, TIM4, to count 1us time increments
+    This is to provide pulse width support originally provided by Arduino API
+    void delayMicroseconds(unsigned int us);
+    Prescaler is adjusted such that timer increments once each microsecond.
+    
 ## Notes
     
     Although the CLK and DIO signals appear and function similar to I2C,
