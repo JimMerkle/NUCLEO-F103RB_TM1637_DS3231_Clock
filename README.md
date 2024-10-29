@@ -19,6 +19,18 @@
     void delayMicroseconds(unsigned int us);
     Prescaler is adjusted such that timer increments once each microsecond.
     
+## Using STM32's RTC for real-time management
+    
+    The RTC module implemented within the STM32-F103RB is a 32-bit counter
+    that increments each second.  It is up to the user to decode
+    years, months, days, hours, minutes, seconds (Normal RTC stuff).
+    
+    Fortunately for us, JeeLab wrote an excellent RTC library for Arduino,
+    supporting multiple RTC modules as well as functions to convert from
+    Unix time (32-bit number of seconds) to RTC (hours, minutes, seconds).
+    https://github.com/adafruit/RTClib/blob/master/src/RTClib.cpp
+    Much of the "utility code" has been copied here, to RTClib.c.
+    
 ## Notes
     
     Although the CLK and DIO signals appear and function similar to I2C,

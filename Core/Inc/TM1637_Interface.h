@@ -3,8 +3,6 @@
 #ifndef __TM1637INTERFACE__
 #define __TM1637INTERFACE__
 
-//#include <TM1637Display.hpp>
-
 #ifdef __cplusplus
 extern "C" {
 #endif
