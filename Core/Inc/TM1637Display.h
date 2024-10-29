@@ -14,6 +14,9 @@
 //  License along with this library; if not, write to the Free Software
 //  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
+// Modified "pin" APIs to use our own STM32 GPIO APIs
+// Use previously initialized STM32Gpio objects vs Arduino pin numbers
+
 #ifndef __TM1637DISPLAY__
 #define __TM1637DISPLAY__
 
@@ -23,6 +26,8 @@ extern "C" {
 
 #include <stdint.h>
 #include "main.h"	// HAL defines
+#include <TM1637_Interface.h>
+
 
 #define SEG_A   0b00000001
 #define SEG_B   0b00000010
@@ -33,64 +38,6 @@ extern "C" {
 #define SEG_G   0b01000000
 
 #define DEFAULT_BIT_DELAY  100
-
-/**
-  * @brief  Basic GPIO class defining an STM32 GPIO pin (peripheral port / pin)
-  * @param  GPIO_Port: where x can be (A..G depending on device used) to select the GPIO peripheral
-  * @param  GPIO_Pin: specifies the port bit to be written.
-  *          This parameter can be one of GPIO_PIN_x where x can be (0..15).
-  */
-class STM32Gpio {
-  public:
-	// Constructor
-	STM32Gpio(){m_GPIO_Port=NULL;m_GPIO_Pin=0;};
-	STM32Gpio(GPIO_TypeDef *GPIO_Port, uint16_t GPIO_Pin){m_GPIO_Port=GPIO_Port;m_GPIO_Pin=GPIO_Pin;};
-	// Member variables
-	GPIO_TypeDef *m_GPIO_Port;
-	uint16_t m_GPIO_Pin;
-};
-
-
-/* Redefine the following such that they call HAL_GPIO_WritePin()
-pinMode(m_pinDIO, INPUT);
-pinMode(m_pinDIO, OUTPUT);
-pinMode(m_pinClk, INPUT);
-pinMode(m_pinClk, OUTPUT);
-*/
-//HAL_GPIO_WritePin(pinClk.m_GPIO_Port, pinClk.m_GPIO_Pin, GPIO_PIN_SET);
-//HAL_GPIO_WritePin(pinDIO.m_GPIO_Port, pinDIO.m_GPIO_Pin, GPIO_PIN_SET);
-
-//========================================================================
-// mico-second delay using systick timer (already running)
-// from: https://deepbluembedded.com/stm32-systick-timer-microseconds-delay-us-delay-function/
-// There's some bug in this function.  Some of the delays are WAY too short!
-//========================================================================
-//#define SYSTICK_LOAD (SystemCoreClock/1000000U)
-//#define SYSTICK_DELAY_CALIB (SYSTICK_LOAD >> 1)
-//
-//#define DELAY_US(us) \
-//    do { \
-//         uint32_t start = SysTick->VAL; \
-//         uint32_t ticks = (us * SYSTICK_LOAD)-SYSTICK_DELAY_CALIB;  \
-//         while((start - SysTick->VAL) < ticks); \
-//    } while (0)
-
-extern uint16_t timer_delay_us(uint16_t delay_us);
-
-// pinMode values:
-#define INPUT   0
-#define OUTPUT  1
-
-//#define pinMode(pin,mode) HAL_GPIO_WritePin(pin.m_GPIO_Port,pin.m_GPIO_Pin,mode?GPIO_PIN_SET:GPIO_PIN_RESET)
-extern void pinMode(STM32Gpio pin,uint8_t mode);
-
-// Define Arduino digitalRead()
-extern int digitalRead(STM32Gpio pin);
-
-// Redefine Arduino API to use HAL API
-//#define delayMicroseconds HAL_Delay
-//#define delayMicroseconds DELAY_US
-#define delayMicroseconds timer_delay_us
 
 class TM1637Display {
 

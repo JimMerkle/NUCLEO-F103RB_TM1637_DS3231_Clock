@@ -22,7 +22,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <stdio.h> // printf()
-#include "TM1637Display.h"
+//#include <TM1637Display.hpp>
 
 /* USER CODE END Includes */
 
@@ -61,29 +61,6 @@ static void MX_TIM4_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-/* Define GPIO pins : TM1637_CLK_Pin TM1637_DIO_Pin for STM32Gpio class objects */
-STM32Gpio TM1637_CLK(TM1637_DIO_GPIO_Port, TM1637_CLK_Pin);
-STM32Gpio TM1637_DIO(TM1637_DIO_GPIO_Port, TM1637_DIO_Pin);
-
-// Using a 16 bit timer spin-delay a quantity of micro-seconds
-// Timer is configured to increment each micro-second
-// This function appears to work perfectly at 64-72MHz system clock, always returning 1000us, when 1000us was requested
-//  - Release build only.  Debug build runs noticeably slower, returning values greater than what was expected.
-// With 16MHz system clock and 8MHz peripheral clock, the delta times are 1000, 1001, and 1019 when systick interrupts fire
-// With 8MHz system clock and 8MHz peripheral clock, the delta times are 1000, 1002, and 1033, 1036, 1038 when systick interrupts fire
-uint16_t timer_delay_us(uint16_t delay_us)
-{
-    //printf("%s(%lu)\n",__func__,delay_us);
-    volatile TIM_TypeDef *TIMx = TIM4; // Establish pointer to timer 4 registers
-    uint16_t start_us = TIMx->CNT; // function entry count
-    uint16_t delta;
-    do {
-    	delta = TIMx->CNT - start_us;
-    } while(delta < delay_us);
-
-    return delta;
-}
-
 #define HAL_SMALL_WAIT  40
 // Define serial input and output functions using UART2
 int __io_putchar(int ch)
@@ -128,30 +105,13 @@ int main(void)
   /* USER CODE BEGIN 2 */
   setvbuf(stdout, NULL, _IONBF, 0);	// Disable stdio output buffering
 
-  TM1637Display display(TM1637_CLK, TM1637_DIO,100);
-  uint8_t data[] = { 0xff, 0xff, 0xff, 0xff };
-  display.setBrightness(0x0f);
-  display.clear();
-  HAL_Delay(500);
-  // All segments on
-  display.setSegments(data);
-  HAL_Delay(500);
-  display.showNumberDec(1234, true); // Expect: 1234
-  HAL_Delay(500);
-  display.showNumberDec(5678, true); // Expect: 5678
-
-    // Test TIM4
-	// In theory, TIM4 should be counting micro-second increments
-	// Have it time HAL_Delay(10).  The result should be between 10,000, and 11,000
-	uint16_t start_us = TIM4->CNT;
-	HAL_Delay(10);
-	uint16_t stop_us = TIM4->CNT;
-	printf("HAL_Delay(10) took %u us\r\n",stop_us - start_us);
-
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  // Run the TM1637 test code
+  extern void tm1637_test(void); // declaration
+  tm1637_test();
   while (1)
   {
 	 printf(".");
