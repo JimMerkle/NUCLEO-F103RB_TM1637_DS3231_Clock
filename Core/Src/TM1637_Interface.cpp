@@ -81,7 +81,7 @@ void tm1637_test(void)
 	// Use SysTick counter for milliseconds
 	// Although this code counts seconds as accurately as the HSE clock provides,
 	// it will roll over at 4,294,967,296 ticks (4,294,967 seconds) (49.7 days).
-	// The counter roll-over isn't accounted for...  Use deltas can correct this...
+	// The counter roll-over isn't accounted for...  Using deltas can correct this...
 //	uint32_t previous_ticks = HAL_GetTick();
 //	for(unsigned count=1;;count++)
 //	{
@@ -103,6 +103,9 @@ void tm1637_test(void)
 //		previous_ticks = leave_loop_ticks;
 //	}
 
+	//=================================================================================================
+	// Get initial RTC time using https://www.unixtimestamp.com
+	//=================================================================================================
 //	// Test the RTCLib code - use https://www.unixtimestamp.com
 //	// Given an Unix UTC timestamp, 1730227900,  1:51:40PM, 10/29/2024
 //	// The timezone offset for Dallas, TX is -5.  Subtract five hours of seconds
@@ -110,8 +113,11 @@ void tm1637_test(void)
 //	DATE_TIME dt;
 //	//unix2rtc(&dt, 1730227900);
 //	//unix2rtc(&dt, 1730227900-(5*60*60)); // Works Great !
-//
-//	buildTime(&dt, __DATE__, __TIME__); // Works Great !  The compiler returns local time.
+
+	//=================================================================================================
+	// Use STM32 RTC and HAL RTC APIs - use compile time to initialize RTC
+	//=================================================================================================
+	//	buildTime(&dt, __DATE__, __TIME__); // Works Great !  The compiler returns local time.
 //	// Use the values from DATE_TIME structure, load structures used by STM32
 //	RTC_TimeTypeDef sTime = {dt.hh,dt.mm,dt.ss};// Hours,Minutes,Seconds
 //	RTC_DateTypeDef sDate = {0,dt.m,dt.d,dt.yOff};
@@ -123,6 +129,7 @@ void tm1637_test(void)
 //	HAL_RTC_SetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
 //
 //	const uint8_t colonMask = 0b01000000;
+	// Loop, reading STM32 RTC and writing the hours & minutes to TM1637 display
 //	while(1) {
 //		HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
 //		display.showNumberDecEx(sTime.Hours, colonMask, false, 2, 0);
@@ -143,23 +150,39 @@ void tm1637_test(void)
 //		HAL_Delay(1000);
 //	}
 
+	//=================================================================================================
+	// Using DS3231 RTC module and TM1637 display, show local time (uses compile time to initialize the RTC)
+	//=================================================================================================
 	DATE_TIME dt;
 	int rc;
 	const uint8_t colonMask = 0b01000000;
 
-	buildTime(&dt, __DATE__, __TIME__); // Works Great !  The compiler returns local time.
+	// Get compile time into DATE_TIME structure
+	buildTime(&dt, __DATE__, __TIME__);
+
+	// Start DS3231 running, counting seconds
 	rc = init_ds3231();
 	if(HAL_OK != rc) printf("init_ds3231() Error: %d\r\n",rc);
+
+	// write compile time to initialize the Date/Time value
 	rc = write_ds3231(&dt);
 	if(HAL_OK != rc) printf("write_ds3231() Error: %d\r\n",rc);
 
+	// Loop, reading DS3231 and writing the hours & minutes to TM1637 display
+	uint8_t previous_minutes = 100; // intentionally an out of bounds value
+	uint32_t previous_ticks = 0;
 	while(1) {
+		// Once a second, we desire the time to be read and updated on the display (if appropriate)
+		uint32_t delta_ticks =
 		rc = read_ds3231(&dt);
 		if(HAL_OK != rc) printf("read_ds3231() Error: %d\r\n",rc);
 
-		display.showNumberDecEx(dt.hh, colonMask, false, 2, 0);
-		display.showNumberDec(dt.mm, true, 2, 2);
-
+		// If the minutes value changes, update the display
+		if(dt.mm != previous_minutes) {
+			display.showNumberDecEx(dt.hh, colonMask, false, 2, 0);
+			display.showNumberDec(dt.mm, true, 2, 2);
+			previous_minutes = dt.mm;
+		}
 		printf("%02u:%02u:%02u\r\n",dt.hh,dt.mm,dt.ss);
 		//printf("Day Of Week: %u\r\n",dayOfTheWeek(&dt));
 
