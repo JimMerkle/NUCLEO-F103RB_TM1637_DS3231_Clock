@@ -4,6 +4,7 @@
 // Supports multiple RTC modules as well as functions to convert from
 // Unix time (32-bit number of seconds) to RTC (hours, minutes, seconds).
 // https://github.com/adafruit/RTClib/blob/master/src/RTClib.cpp
+// This library has been modified to work with "C".  (No C++ support required)
 /**************************************************************************/
 #include "stdint.h"
 #include "RTClib.h"

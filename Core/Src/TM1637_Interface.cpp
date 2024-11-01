@@ -6,6 +6,7 @@
 #include <TM1637Display.h>
 #include "RTClib.h"
 #include "stm32f1xx_hal_rtc.h"
+#include "DS3231.h"
 
 // The TM1637 library depends on the Arduino "pinMode()" and "digitalRead()" APIs
 // To implement a translation layer, we will create a STM32Gpio object that can be passed like an Arduio pin.
@@ -102,39 +103,68 @@ void tm1637_test(void)
 //		previous_ticks = leave_loop_ticks;
 //	}
 
-	// Test the RTCLib code - use https://www.unixtimestamp.com
-	// Given an Unix UTC timestamp, 1730227900,  1:51:40PM, 10/29/2024
-	// The timezone offset for Dallas, TX is -5.  Subtract five hours of seconds
-	// Convert into month/day/year, hour:minute:second
+//	// Test the RTCLib code - use https://www.unixtimestamp.com
+//	// Given an Unix UTC timestamp, 1730227900,  1:51:40PM, 10/29/2024
+//	// The timezone offset for Dallas, TX is -5.  Subtract five hours of seconds
+//	// Convert into month/day/year, hour:minute:second
+//	DATE_TIME dt;
+//	//unix2rtc(&dt, 1730227900);
+//	//unix2rtc(&dt, 1730227900-(5*60*60)); // Works Great !
+//
+//	buildTime(&dt, __DATE__, __TIME__); // Works Great !  The compiler returns local time.
+//	// Use the values from DATE_TIME structure, load structures used by STM32
+//	RTC_TimeTypeDef sTime = {dt.hh,dt.mm,dt.ss};// Hours,Minutes,Seconds
+//	RTC_DateTypeDef sDate = {0,dt.m,dt.d,dt.yOff};
+//
+//	// Using our initialized DATE_TIME structure, initialize the STM32 RTC
+//	extern RTC_HandleTypeDef hrtc;
+//
+//	HAL_RTC_SetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
+//	HAL_RTC_SetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
+//
+//	const uint8_t colonMask = 0b01000000;
+//	while(1) {
+//		HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
+//		display.showNumberDecEx(sTime.Hours, colonMask, false, 2, 0);
+//		display.showNumberDec(sTime.Minutes, true, 2, 2);
+//
+//		printf("%02u:%02u:%02u\r\n",sTime.Hours,sTime.Minutes,sTime.Seconds);
+//		//printf("Day Of Week: %u\r\n",dayOfTheWeek(&dt));
+//
+//		HAL_Delay(1000);
+//	}
+
+//	// Attempt to display decimal points and colon on the TM1637 display
+//	for(unsigned i=0;i<5;i++) {
+//		display.showNumberDecEx(1234, 0b11100000, false, 4, 0); // dots and colon
+//		HAL_Delay(1000);
+//
+//		display.showNumberDecEx(1234, 0b00000000, false, 4, 0); // dots and colon off
+//		HAL_Delay(1000);
+//	}
+
 	DATE_TIME dt;
-	//unix2rtc(&dt, 1730227900);
-	//unix2rtc(&dt, 1730227900-(5*60*60)); // Works Great !
+	int rc;
+	const uint8_t colonMask = 0b01000000;
 
 	buildTime(&dt, __DATE__, __TIME__); // Works Great !  The compiler returns local time.
-	// Use the values from DATE_TIME structure, load structures used by STM32
-	RTC_TimeTypeDef sTime = {dt.hh,dt.mm,dt.ss};// Hours,Minutes,Seconds
-	RTC_DateTypeDef sDate = {0,dt.m,dt.d,dt.yOff};
+	rc = init_ds3231();
+	if(HAL_OK != rc) printf("init_ds3231() Error: %d\r\n",rc);
+	rc = write_ds3231(&dt);
+	if(HAL_OK != rc) printf("write_ds3231() Error: %d\r\n",rc);
 
-	// Using our initialized DATE_TIME structure, initialize the STM32 RTC
-	extern RTC_HandleTypeDef hrtc;
-
-	HAL_RTC_SetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
-	HAL_RTC_SetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
-
-	const uint8_t colonMask = 0b01000000;
 	while(1) {
-		HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
-		display.showNumberDecEx(sTime.Hours, colonMask, false, 2, 0);
-		display.showNumberDec(sTime.Minutes, true, 2, 2);
+		rc = read_ds3231(&dt);
+		if(HAL_OK != rc) printf("read_ds3231() Error: %d\r\n",rc);
 
-		printf("%02u:%02u:%02u\r\n",sTime.Hours,sTime.Minutes,sTime.Seconds);
+		display.showNumberDecEx(dt.hh, colonMask, false, 2, 0);
+		display.showNumberDec(dt.mm, true, 2, 2);
+
+		printf("%02u:%02u:%02u\r\n",dt.hh,dt.mm,dt.ss);
 		//printf("Day Of Week: %u\r\n",dayOfTheWeek(&dt));
 
 		HAL_Delay(1000);
 	}
-
-
-
 }
 
 

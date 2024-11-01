@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
-	<name>NUCLEO-F103RB_TM1637Test</name>
+	<name>NUCLEO-F103RB_TM1637_DS3231_Clock</name>
 	<comment></comment>
 	<projects>
 	</projects>
