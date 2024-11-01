@@ -6,7 +6,7 @@
     Using STMicro NUCLEO-F103RB
     
 ## TM1637 - 7 segment display
-        
+    
     Connect TM1637 7-segment display pins to:
       PC10 (CLK)
       PC12 (DIO)
@@ -16,13 +16,14 @@
     The TM1637 does not have an I2C address, and assumes all communication
     on the CLK/DIO signals are for it.
     
-## TM1637 Library    
+## TM1637 Library
+      
     Adapted from Arduino Library:
     TM1637 by Avishay Orpaz, version 1.2.0, simple, clean, works
        
 ## DS3231 - Connections
-   
-   Connect DS3231 to I2C1 pins:
+    
+    Connect DS3231 to I2C1 pins:
      PB8 (SCL)
      PB9 (SDA)
 		
