@@ -19,25 +19,6 @@ extern int digitalRead(STM32Gpio pin);
 STM32Gpio TM1637_CLK(TM1637_DIO_GPIO_Port, TM1637_CLK_Pin);
 STM32Gpio TM1637_DIO(TM1637_DIO_GPIO_Port, TM1637_DIO_Pin);
 
-// Using a 16 bit timer spin-delay a quantity of micro-seconds
-// Timer is configured to increment each micro-second
-// This function appears to work perfectly at 64-72MHz system clock, always returning 1000us, when 1000us was requested
-//  - Release build only.  Debug build runs noticeably slower, returning values greater than what was expected.
-// With 16MHz system clock and 8MHz peripheral clock, the delta times are 1000, 1001, and 1019 when systick interrupts fire
-// With 8MHz system clock and 8MHz peripheral clock, the delta times are 1000, 1002, and 1033, 1036, 1038 when systick interrupts fire
-uint16_t timer_delay_us(uint16_t delay_us)
-{
-    //printf("%s(%lu)\n",__func__,delay_us);
-    volatile TIM_TypeDef *TIMx = TIM4; // Establish pointer to timer 4 registers
-    uint16_t start_us = TIMx->CNT; // function entry count
-    uint16_t delta;
-    do {
-    	delta = TIMx->CNT - start_us;
-    } while(delta < delay_us);
-
-    return delta;
-}
-
 void tm1637_test(void)
 {
 	// Initialize - construct the TM1637Display class
@@ -170,10 +151,10 @@ void tm1637_test(void)
 
 	// Loop, reading DS3231 and writing the hours & minutes to TM1637 display
 	uint8_t previous_minutes = 100; // intentionally an out of bounds value
-	uint32_t previous_ticks = 0;
+	//uint32_t previous_ticks = 0;
 	while(1) {
 		// Once a second, we desire the time to be read and updated on the display (if appropriate)
-		uint32_t delta_ticks =
+		//uint32_t delta_ticks =
 		rc = read_ds3231(&dt);
 		if(HAL_OK != rc) printf("read_ds3231() Error: %d\r\n",rc);
 
@@ -186,7 +167,7 @@ void tm1637_test(void)
 		printf("%02u:%02u:%02u\r\n",dt.hh,dt.mm,dt.ss);
 		//printf("Day Of Week: %u\r\n",dayOfTheWeek(&dt));
 
-		HAL_Delay(1000);
+		HAL_Delay(1000); // delay a second
 	}
 }
 

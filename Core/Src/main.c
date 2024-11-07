@@ -22,6 +22,9 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <stdio.h> // printf()
+#include "command_line.h"
+#include "DS3231.h"
+
 //#include <TM1637Display.hpp>
 
 /* USER CODE END Includes */
@@ -68,7 +71,44 @@ static void MX_I2C1_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 #define HAL_SMALL_WAIT  40
+
+
 // Define serial input and output functions using UART2
+// DMA Buffer for usart2 RX
+//#define USART2_RX_DMA_BUFFER_SIZE 1030 // any size will do, but we may want to choose X-Modem receive size
+//uint8_t usart2_rx_dma_buffer[USART2_RX_DMA_BUFFER_SIZE];
+
+// Implement a get_byte(void) function that utilizes a circular DMA RX buffer that:
+// 1) Tests if data is available in the DMA RX buffer
+// 2) Pulls and returns the data
+// 3) Manages an index_out value for next removal of data
+// 4) As a non-blocking function, return EOF when no bytes are available, else returns data byte
+int __io_getchar(void)
+{
+#if 0
+	// The following support STM32-F446RE for UART DMA Receive
+	static uint16_t index_out = 0;
+	uint16_t index_in = USART2_RX_DMA_BUFFER_SIZE - huart2.hdmarx->Instance->NDTR;
+	if(index_in == index_out) return EOF;
+	// Else, we have a byte in buffer to return
+	uint8_t data = usart2_rx_dma_buffer[index_out];
+	// advance index
+	index_out++;
+	// wrap index when necessary
+	if(index_out >= USART2_RX_DMA_BUFFER_SIZE) index_out = 0;
+	return data;
+
+#else
+	// Brain dead polling
+	char ch;
+	if(HAL_OK == HAL_UART_Receive(&huart2, (uint8_t *)&ch, 1, 50))
+	    return ch;
+	else
+		return EOF;
+#endif
+
+}
+
 int __io_putchar(int ch)
 {
     HAL_UART_Transmit(&huart2, (uint8_t *)&ch, 1, HAL_SMALL_WAIT);
@@ -111,19 +151,20 @@ int main(void)
   MX_RTC_Init();
   MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
-  setvbuf(stdout, NULL, _IONBF, 0);	// Disable stdio output buffering
+  //setvbuf(stdout, NULL, _IONBF, 0);	// Disable stdio output buffering
+  cl_setup(); // calls setvbuf()
 
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   // Run the TM1637 test code
-  extern void tm1637_test(void); // declaration
-  tm1637_test();
+  //extern void tm1637_test(void); // declaration
+  //tm1637_test();
+  init_ds3231();
   while (1)
   {
-	 printf(".");
-	 HAL_Delay(1000);
+	 cl_loop();
 
     /* USER CODE END WHILE */
 

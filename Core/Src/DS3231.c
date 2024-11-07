@@ -13,33 +13,13 @@
 #include "main.h" // HAL error definitions
 #include "DS3231.h"
 #include <stdio.h> // printf()
+#include "command_line.h"
 
 // DS3231 registers use BCD encoding for time/date storage.
 // This requires BCD to BIN and BIN to BCD functions to convert back and forth
 static uint8_t bin2bcd (uint8_t val) { return val + 6 * (val / 10); }
 static uint8_t bcd2bin (uint8_t val) { return val - 6 * (val >> 4); }
 
-//=============================================================================
-extern I2C_HandleTypeDef hi2c1; // using I2C1 - global instance
-
-// Implement a "generic I2C API" for writing to and then reading from an I2C device (in that order)
-// Model this to be similar to HAL I2C APIs
-HAL_StatusTypeDef i2c_write_read(uint16_t DevAddress, uint8_t * write_data, uint16_t write_count, uint8_t * read_data, uint16_t read_count)
-{
-	HAL_StatusTypeDef rc = HAL_OK;
-	// If write_data and wrire_count are non-null, perform write first
-	if(write_data && write_count) {
-		rc = HAL_I2C_Master_Transmit(&hi2c1, DevAddress << 1, write_data, write_count, SMALL_HAL_TIMEOUT);
-		if(HAL_OK != rc) printf("HAL_I2C_Master_Transmit() Error: %d\r\n",rc);
-	}
-
-	if(HAL_OK == rc && read_data && read_count) {
-		rc = HAL_I2C_Master_Receive(&hi2c1, DevAddress << 1, read_data, read_count, SMALL_HAL_TIMEOUT);
-		if(HAL_OK != rc) printf("HAL_I2C_Master_Receive() Error: %d\r\n",rc);
-	}
-
-	return rc;
-}
 //=============================================================================
 // Initialize the DS3231, clear the OSF bit, enable the device to begin counting
 // Configure Control register and Status register as follows:
@@ -55,10 +35,36 @@ HAL_StatusTypeDef i2c_write_read(uint16_t DevAddress, uint8_t * write_data, uint
 // NAME |  OSF  |       |       |       |EN32KHz|  BSY  |  A2F  |  A1F  |
 // POR  |   1   |   0   |   0   |   0   |   1   |   X   |   X   |   X   |
 //      +-------+-------+-------+-------+-------+-------+-------+-------+
+
+extern I2C_HandleTypeDef hi2c1; // main.c
+
+const DATE_TIME dt_reset = {
+	0,  //< Year offset from 2000
+	1,  //< Month 1-12
+	1,	//< Day 1-31
+	0,  //< Hours 0-23
+	0,  //< Minutes 0-59
+	0   //< Seconds 0-59
+};
+
+// Write the DS3231 Control register, get RTC counting
+// Does NOT clear Oscillator Stop Flag (OSF)
+//
 HAL_StatusTypeDef init_ds3231(void)
 {
-	uint8_t control_status[3] = {0x0E, 0b00000000, 0b00000000};  // Index, Control, Status
-	return HAL_I2C_Master_Transmit(&hi2c1, DS3231_ADDRESS << 1, control_status, sizeof(control_status), SMALL_HAL_TIMEOUT);
+	uint8_t indx_control[2] = {0x0E, 0b00000000};  // Index, Control
+	HAL_StatusTypeDef rc = HAL_I2C_Master_Transmit(&hi2c1, DS3231_ADDRESS << 1, indx_control, sizeof(indx_control), HAL_I2C_SMALL_TIMEOUT);
+	if(HAL_OK != rc) return rc; // if not success, return now
+	// Read status register - is OSF set?
+	uint8_t index = 0x0F;
+	uint8_t reg_data;
+	rc = i2c_write_read(DS3231_ADDRESS, &index, sizeof(index), &reg_data, sizeof(reg_data));
+	if(HAL_OK != rc) return rc; // if not success, return now
+	// If OSF (BIT 7) set, write initial values to RTC registers
+	if(reg_data & 0x80) {
+		rc = write_ds3231(&dt_reset);
+	}
+	return rc;
 }
 
 //=============================================================================
@@ -87,7 +93,7 @@ HAL_StatusTypeDef read_ds3231(DATE_TIME * dt)
 // The Time/Date registers are located at index 00h - 06h
 // Use a "generic I2C API" to write index registers 000h - 06h
 // Write the DS3231 time/date registers given a DATE_TIME structure
-HAL_StatusTypeDef write_ds3231(DATE_TIME * dt)
+HAL_StatusTypeDef write_ds3231(const DATE_TIME * dt)
 {
 	uint8_t reg_data[8]; // [0] index, [1] - [7] time and date registers
 
@@ -101,6 +107,59 @@ HAL_StatusTypeDef write_ds3231(DATE_TIME * dt)
 	reg_data[6] = bin2bcd(dt->m); // remove century bit
 	reg_data[7] = bin2bcd(dt->yOff);
 
-	return i2c_write_read(DS3231_ADDRESS, reg_data, sizeof(reg_data), NULL, 0);
+	HAL_StatusTypeDef rc = i2c_write_read(DS3231_ADDRESS, reg_data, sizeof(reg_data), NULL, 0);
+	if(HAL_OK != rc) return rc; // if not success, return now
+
+	// Clear the OSF bit
+	uint8_t index_status[2] = {0x0F, 0x00}; // index of status register and value to write to it
+	rc = i2c_write_read(DS3231_ADDRESS, index_status, sizeof(index_status), NULL, 0);
+	return rc;
 }
 
+// Command line method to read / set the time
+int cl_time(void)
+{
+	DATE_TIME dt;
+	read_ds3231(&dt); // read in time and date values into DATE_TIME structure
+
+	if(4 == argc) {
+		// Set the time using arguments at index 1 <hours>, 2 <minutes>, 3 <seconds>
+		dt.hh = strtol(argv[1], NULL, 10); // user will use decimal
+		dt.mm = strtol(argv[2], NULL, 10);
+		dt.ss = strtol(argv[3], NULL, 10);
+		// Write new time values to DS3231
+		//printf("Writing time values - -  %02u:%02u:%02u\r\n",dt.hh,dt.mm,dt.ss);
+		printf("Writing time values...\r\n");
+		write_ds3231(&dt);
+	}
+
+	// Always read the DS3231 and display the time
+	read_ds3231(&dt);
+	printf("%02u:%02u:%02u\r\n",dt.hh,dt.mm,dt.ss);
+	return 0;
+}
+
+// Command line method to read / set the date
+int cl_date(void)
+{
+	DATE_TIME dt;
+	read_ds3231(&dt); // read in time and date values into DATE_TIME structure
+
+	if(4 == argc) {
+		// Set the date using arguments at index 1 <day>, 2 <month>, 3 <year>
+		dt.d = strtol(argv[1], NULL, 10); // user will use decimal
+		dt.m = strtol(argv[2], NULL, 10);
+		uint16_t year = strtol(argv[3], NULL, 10);
+		if(year >= 2000) year -= 2000; // convert to offset
+		dt.yOff = (uint8_t)year;
+		// Write new time values to DS3231
+		//printf("Writing date values - -  %02u/%02u/%04u\r\n",dt.d,dt.m,dt.yOff+2000);
+		printf("Writing date values...\r\n");
+		write_ds3231(&dt);
+	}
+
+	// Always read the DS3231 and display the date
+	read_ds3231(&dt);
+	printf("%02u/%02u/%04u\r\n",dt.d,dt.m,dt.yOff + 2000);
+	return 0;
+}
