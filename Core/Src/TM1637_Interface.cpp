@@ -8,18 +8,11 @@
 #include "stm32f1xx_hal_rtc.h"
 #include "DS3231.h"
 
-// The TM1637 library depends on the Arduino "pinMode()" and "digitalRead()" APIs
-// To implement a translation layer, we will create a STM32Gpio object that can be passed like an Arduio pin.
-extern void pinMode(STM32Gpio pin,uint8_t mode);
-
-// Define Arduino digitalRead()
-extern int digitalRead(STM32Gpio pin);
-
 /* Define GPIO pins : TM1637_CLK_Pin TM1637_DIO_Pin for STM32Gpio class objects */
 STM32Gpio TM1637_CLK(TM1637_DIO_GPIO_Port, TM1637_CLK_Pin);
 STM32Gpio TM1637_DIO(TM1637_DIO_GPIO_Port, TM1637_DIO_Pin);
 
-void tm1637_test(void)
+/*void tm1637_test(void)
 {
 	// Initialize - construct the TM1637Display class
 	TM1637Display display(TM1637_CLK, TM1637_DIO,100);
@@ -136,7 +129,7 @@ void tm1637_test(void)
 	//=================================================================================================
 	DATE_TIME dt;
 	int rc;
-	const uint8_t colonMask = 0b01000000;
+	//const uint8_t colonMask = 0b01000000;
 
 	// Get compile time into DATE_TIME structure
 	buildTime(&dt, __DATE__, __TIME__);
@@ -168,6 +161,43 @@ void tm1637_test(void)
 		//printf("Day Of Week: %u\r\n",dayOfTheWeek(&dt));
 
 		HAL_Delay(1000); // delay a second
+	}
+}*/
+
+// Constructor for the TM1637 - Doesn't write to the pins
+TM1637Display display(TM1637_CLK, TM1637_DIO,100);
+
+// Initialize the TM1637 for clock usage
+// Display 00:00 on the display
+void init_tm1637(void)
+{
+	// Initialize - configure the GPIO pins
+	display.configure_gpio_pins();
+	display.setBrightness(0x0f);
+	//display.clear();
+	display.showNumberDecEx(0, colonMask, true, 2, 0);
+	display.showNumberDec(0, true, 2, 2);
+}
+
+// Check time, update clock if needed, else just return
+// This gets called very frequently.  Only "do something" every second, else just return
+void update_clock(void)
+{
+	static uint32_t previous_ticks = 0;
+	static uint8_t previous_minutes = 100; // intentionally an invalid value
+	DATE_TIME dt;
+
+	// If delta time is greater or equal to 1000ms, update clock
+	if( (HAL_GetTick() - previous_ticks) >= 1000 ) {
+		// Read RTC into DATE_TIME structure
+		read_ds3231(&dt);
+		// If the minutes value changes, update the display
+		if(dt.mm != previous_minutes) {
+			display.showNumberDecEx(dt.hh, colonMask, false, 2, 0);
+			display.showNumberDec(dt.mm, true, 2, 2);
+			previous_minutes = dt.mm;
+		}
+		previous_ticks = HAL_GetTick();
 	}
 }
 

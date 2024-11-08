@@ -39,13 +39,11 @@ extern uint16_t timer_delay_us(uint16_t delay_us);
 #define OUTPUT  1
 
 // Redefine Arduino API to use our own microsecond delay
-//#define delayMicroseconds HAL_Delay
-//#define delayMicroseconds DELAY_US
 #define delayMicroseconds timer_delay_us
 
-// This instructs the compiler to make this function accessible from "C" code
-extern "C" void tm1637_test(void);
-
+void tm1637_test(void);
+void init_tm1637(void);
+void update_clock(void);
 
 #ifdef __cplusplus
 }

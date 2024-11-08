@@ -58,19 +58,6 @@ const uint8_t digitToSegment[] = {
 
 static const uint8_t minusSegments = 0b01000000;
 
-/*
-STM32Gpio::STM32Gpio()
-{
-	m_GPIO_Port=NULL;
-	m_GPIO_Pin=0;
-}
-
-STM32Gpio::STM32Gpio(GPIO_TypeDef *GPIO_Port, uint16_t GPIO_Pin)
-{	m_GPIO_Port=GPIO_Port;
-    m_GPIO_Pin=GPIO_Pin;
-};
-*/
-
 //#define pinMode(pin,mode) HAL_GPIO_WritePin(pin.m_GPIO_Port,pin.m_GPIO_Pin,mode?GPIO_PIN_SET:GPIO_PIN_RESET)
 void pinMode(STM32Gpio pin,uint8_t mode)
 {
@@ -83,24 +70,31 @@ int digitalRead(STM32Gpio pin)
 	return HAL_GPIO_ReadPin(pin.m_GPIO_Port,pin.m_GPIO_Pin);
 }
 
+// Safe constructor that can run before any main() code
 TM1637Display::TM1637Display(STM32Gpio pinClk, STM32Gpio pinDIO, unsigned int bitDelay)
 {
 	// Copy the pin numbers
 	m_pinClk = pinClk;
 	m_pinDIO = pinDIO;
 	m_bitDelay = bitDelay;
+}
 
+//! Sometime later, after GPIO pins become available....
+//! Initialize TM1637Display object's clock and data pins.
+void TM1637Display::configure_gpio_pins(void)
+{
 	// Set the pin direction and default value.  Allow the pins to float - pulled up by pull-ups.
 	// Both pins are set as inputs, allowing the pull-up resistors to pull them up
-	HAL_GPIO_WritePin(pinClk.m_GPIO_Port, pinClk.m_GPIO_Pin, GPIO_PIN_SET);
-	HAL_GPIO_WritePin(pinDIO.m_GPIO_Port, pinDIO.m_GPIO_Pin, GPIO_PIN_SET);
-
-    //pinMode(m_pinClk, INPUT);
-    //pinMode(m_pinDIO,INPUT);
+	// Allow the following two lines work, use the original APIs
+	//HAL_GPIO_WritePin(pinClk.m_GPIO_Port, pinClk.m_GPIO_Pin, GPIO_PIN_SET);
+	//HAL_GPIO_WritePin(pinDIO.m_GPIO_Port, pinDIO.m_GPIO_Pin, GPIO_PIN_SET);
+    pinMode(m_pinClk, INPUT);
+    pinMode(m_pinDIO, INPUT);
     // When configured for outputs, the pins will be low
     //digitalWrite(m_pinClk, LOW);
 	//digitalWrite(m_pinDIO, LOW);
 }
+
 
 void TM1637Display::setBrightness(uint8_t brightness, bool on)
 {

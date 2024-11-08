@@ -14,6 +14,7 @@
 #include "DS3231.h"
 #include <stdio.h> // printf()
 #include "command_line.h"
+//#include "TM1637_Interface.h"
 
 // DS3231 registers use BCD encoding for time/date storage.
 // This requires BCD to BIN and BIN to BCD functions to convert back and forth
@@ -49,7 +50,7 @@ const DATE_TIME dt_reset = {
 
 // Write the DS3231 Control register, get RTC counting
 // Does NOT clear Oscillator Stop Flag (OSF)
-//
+// Set time to reset value if clock was stopped
 HAL_StatusTypeDef init_ds3231(void)
 {
 	uint8_t indx_control[2] = {0x0E, 0b00000000};  // Index, Control

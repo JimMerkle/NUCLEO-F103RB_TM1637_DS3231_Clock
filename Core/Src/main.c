@@ -24,8 +24,7 @@
 #include <stdio.h> // printf()
 #include "command_line.h"
 #include "DS3231.h"
-
-//#include <TM1637Display.hpp>
+//#include <TM1637Display.h> // Including this causes the "C" compiler to stumble on the "C++" definitions
 
 /* USER CODE END Includes */
 
@@ -36,6 +35,8 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+void init_tm1637(void); // TM1637_Interface.cpp
+void update_clock(void);
 
 /* USER CODE END PD */
 
@@ -158,13 +159,12 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  // Run the TM1637 test code
-  //extern void tm1637_test(void); // declaration
-  //tm1637_test();
-  init_ds3231();
+  init_ds3231(); // Start DS3231 clock running - reset time if clock was stopped
+  init_tm1637(); // init display for clock usage.  Display will show 00:00
   while (1)
   {
-	 cl_loop();
+	 cl_loop();	// check for serial character input for command line
+	 update_clock(); // every second, check time, update clock if needed, else just return
 
     /* USER CODE END WHILE */
 

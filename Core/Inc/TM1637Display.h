@@ -39,6 +39,8 @@ extern "C" {
 
 #define DEFAULT_BIT_DELAY  100
 
+#define colonMask 0b01000000	/* bit pattern to enable colon */
+
 class TM1637Display {
 
 public:
@@ -50,6 +52,10 @@ public:
   //! @param bitDelay - The delay, in microseconds, between bit transition on the serial
   //!                   bus connected to the display
   TM1637Display(STM32Gpio pinClk, STM32Gpio pinDIO, unsigned int bitDelay = DEFAULT_BIT_DELAY);
+
+  //! Sometime later, after GPIO pins become available....
+  //! Initialize TM1637Display object's clock and data pins.
+  void configure_gpio_pins(void);
 
   //! Sets the brightness of the display.
   //!
