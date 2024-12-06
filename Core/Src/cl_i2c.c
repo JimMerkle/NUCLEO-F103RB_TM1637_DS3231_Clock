@@ -9,6 +9,7 @@
 #include <stdlib.h> // strtol()
 #include "main.h"   // HAL functions and defines - HAL_I2C_MODULE_ENABLED in stm32f1xx_hal_conf.h
 #include "cl_i2c.h"
+#include "DS3231.h"
 
 // I2C helper function that validates I2C address is within range
 // If I2C address is within range, return 0, else display error and return -1.
@@ -67,4 +68,19 @@ int cl_i2c_scan(void)
     return 0;
 } // cl_i2c_scanner
 
+// Test routine to generate SCL/SDL waveforms for capture - I2C address followed by byte write
+int cl_i2c_write(void)
+{
+	uint8_t index = 0;
+	HAL_I2C_Master_Transmit(&hi2c1, DS3231_ADDRESS << 1, &index, sizeof(index), HAL_I2C_SMALL_TIMEOUT);
+    return 0;
+}
+
+// Test routine to generate SCL/SDL waveforms for capture - I2C address followed by byte read
+int cl_i2c_read(void)
+{
+	uint8_t data = 0xFF;
+	HAL_I2C_Master_Receive(&hi2c1, DS3231_ADDRESS << 1, &data, sizeof(data), HAL_I2C_SMALL_TIMEOUT);
+    return 0;
+}
 

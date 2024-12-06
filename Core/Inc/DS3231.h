@@ -22,6 +22,7 @@ HAL_StatusTypeDef write_ds3231(const DATE_TIME * dt);
 
 int cl_time(void);
 int cl_date(void);
+int cl_ds3231_dump(void);
 //=============================================================================
 
 

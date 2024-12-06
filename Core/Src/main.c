@@ -53,6 +53,7 @@ RTC_HandleTypeDef hrtc;
 TIM_HandleTypeDef htim4;
 
 UART_HandleTypeDef huart2;
+DMA_HandleTypeDef hdma_usart2_rx;
 
 /* USER CODE BEGIN PV */
 
@@ -61,6 +62,7 @@ UART_HandleTypeDef huart2;
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
+static void MX_DMA_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_TIM4_Init(void);
 static void MX_RTC_Init(void);
@@ -76,8 +78,9 @@ static void MX_I2C1_Init(void);
 
 // Define serial input and output functions using UART2
 // DMA Buffer for usart2 RX
-//#define USART2_RX_DMA_BUFFER_SIZE 1030 // any size will do, but we may want to choose X-Modem receive size
-//uint8_t usart2_rx_dma_buffer[USART2_RX_DMA_BUFFER_SIZE];
+//#define USART2_RX_DMA_BUFFER_SIZE 1030 // any size will do, but we may want to choose X-Modem 1K receive size
+#define USART2_RX_DMA_BUFFER_SIZE 80
+uint8_t usart2_rx_dma_buffer[USART2_RX_DMA_BUFFER_SIZE];
 
 // Implement a get_byte(void) function that utilizes a circular DMA RX buffer that:
 // 1) Tests if data is available in the DMA RX buffer
@@ -86,10 +89,10 @@ static void MX_I2C1_Init(void);
 // 4) As a non-blocking function, return EOF when no bytes are available, else returns data byte
 int __io_getchar(void)
 {
-#if 0
-	// The following support STM32-F446RE for UART DMA Receive
+#if 1
+	// The following supports STM32-F103RB for UART DMA Receive
 	static uint16_t index_out = 0;
-	uint16_t index_in = USART2_RX_DMA_BUFFER_SIZE - huart2.hdmarx->Instance->NDTR;
+	uint16_t index_in = USART2_RX_DMA_BUFFER_SIZE - huart2.hdmarx->Instance->CNDTR;
 	if(index_in == index_out) return EOF;
 	// Else, we have a byte in buffer to return
 	uint8_t data = usart2_rx_dma_buffer[index_out];
@@ -147,24 +150,34 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_USART2_UART_Init();
   MX_TIM4_Init();
   MX_RTC_Init();
   MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
   //setvbuf(stdout, NULL, _IONBF, 0);	// Disable stdio output buffering
+  // Define DMA buffer for UART peripheral
+  HAL_UART_Receive_DMA(&huart2, usart2_rx_dma_buffer, USART2_RX_DMA_BUFFER_SIZE);
   cl_setup(); // calls setvbuf()
 
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  init_ds3231(); // Start DS3231 clock running - reset time if clock was stopped
+  //init_ds3231(); // Start DS3231 clock running - reset time if clock was stopped
   init_tm1637(); // init display for clock usage.  Display will show 00:00
   while (1)
   {
-	 cl_loop();	// check for serial character input for command line
-	 update_clock(); // every second, check time, update clock if needed, else just return
+    cl_loop();	// check for serial character input for command line
+
+    // Check RTC once a second.  Update display if minute value changes.
+    static uint32_t previous_ticks = 0;
+    // If delta time is greater or equal to 1000ms, update clock
+    if( (HAL_GetTick() - previous_ticks) >= 1000 ) {
+		previous_ticks = HAL_GetTick(); // reload for next second
+		update_clock(); // every second, check time, update clock if needed
+    }
 
     /* USER CODE END WHILE */
 
@@ -374,6 +387,22 @@ static void MX_USART2_UART_Init(void)
   /* USER CODE BEGIN USART2_Init 2 */
 
   /* USER CODE END USART2_Init 2 */
+
+}
+
+/**
+  * Enable DMA controller clock
+  */
+static void MX_DMA_Init(void)
+{
+
+  /* DMA controller clock enable */
+  __HAL_RCC_DMA1_CLK_ENABLE();
+
+  /* DMA interrupt init */
+  /* DMA1_Channel6_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Channel6_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Channel6_IRQn);
 
 }
 

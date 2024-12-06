@@ -31,6 +31,11 @@ typedef struct {
   int (*function)(void); // pointer to command function
 } COMMAND_ITEM;
 
+// function prototype
+int cl_tm1637_count(void);
+int cl_i2c_write(void);
+int cl_i2c_read(void);
+
 const COMMAND_ITEM cmd_table[] = {
     {"?",         "display help menu",                            1, cl_help},
     {"help",      "display help menu",                            1, cl_help},
@@ -42,8 +47,13 @@ const COMMAND_ITEM cmd_table[] = {
     {"timer",     "timer test - testing 50ms delay",              1, cl_timer},
 	{"delaytest", "test microsecond delays",                      1, cl_timer_delay_test},
 	{"i2cscan",   "scan i2c bus for connected devices",           1, cl_i2c_scan},
+	{"i2cwrite",  "test - write 0 to DS3231",                     1, cl_i2c_write},
+	{"i2cread",   "test - read byte from DS3231",                 1, cl_i2c_read},
 	{"time",      "time <hh mm ss> to set, no params to read",    1, cl_time},
 	{"date",      "date <day month year>",                        1, cl_date},
+    {"dump",      "dump the DS3231 register data",                1, cl_ds3231_dump},
+	{"count",     "tm1637 test",                                  1, cl_tm1637_count},
+
     {NULL,NULL,0,NULL}, /* end of table */
 };
 

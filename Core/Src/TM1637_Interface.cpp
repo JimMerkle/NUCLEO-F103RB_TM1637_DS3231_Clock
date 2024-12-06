@@ -180,25 +180,39 @@ void init_tm1637(void)
 }
 
 // Check time, update clock if needed, else just return
-// This gets called very frequently.  Only "do something" every second, else just return
+// This gets called every second.  Only update display if the minutes value changes.
 void update_clock(void)
 {
-	static uint32_t previous_ticks = 0;
 	static uint8_t previous_minutes = 100; // intentionally an invalid value
 	DATE_TIME dt;
-
-	// If delta time is greater or equal to 1000ms, update clock
-	if( (HAL_GetTick() - previous_ticks) >= 1000 ) {
-		// Read RTC into DATE_TIME structure
-		read_ds3231(&dt);
-		// If the minutes value changes, update the display
-		if(dt.mm != previous_minutes) {
-			display.showNumberDecEx(dt.hh, colonMask, false, 2, 0);
-			display.showNumberDec(dt.mm, true, 2, 2);
-			previous_minutes = dt.mm;
-		}
-		previous_ticks = HAL_GetTick();
+	// Read RTC into DATE_TIME structure
+	read_ds3231(&dt);
+	// If the minutes value changes, update the display
+	if(dt.mm != previous_minutes) {
+	    if(dt.hh>12) dt.hh-=12; // convert 24hr display to 12hr
+		// if hours (dt.hh) is zero, the colon doesn't display.  Display 12 instead.
+		display.showNumberDecEx(dt.hh?dt.hh:12, colonMask, false, 2, 0);
+		display.showNumberDec(dt.mm, true, 2, 2);
+		previous_minutes = dt.mm;
 	}
 }
 
+// Give the display something to do
+int cl_tm1637_count(void)
+{
+	printf("Counting 100ms increments on the TM1637 display.\nPress any key to stop\n");
+	uint32_t previous_ticks = 0;
+	uint32_t current_ticks;
+	for(unsigned i=0;;) {
+	    // If delta time is greater or equal to 100ms, update count
+	    current_ticks = HAL_GetTick();
+	    if(current_ticks - previous_ticks >= 100 ) {
+		    display.showNumberDec(i%10000, false, 4, 0); // use modulus operator to force values to 0 - 9999
+		    previous_ticks = current_ticks; // for next 200ms
+		    i++; // for next pass
+	    }
+	    if(__io_getchar() != EOF) break; // Pressing any key will exit for-loop
+	}
+	return 0;
+}
 

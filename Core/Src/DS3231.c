@@ -14,31 +14,53 @@
 #include "DS3231.h"
 #include <stdio.h> // printf()
 #include "command_line.h"
-//#include "TM1637_Interface.h"
+
+/*====================================================================================================
+| DS3231 Index Registers (See DS3231.pdf, Figure 1, Timekeeping Registers)
+|=====================================================================================================
+| INDEX | BIT 7 | BIT 6 | BIT 5 | BIT 4  | BIT 3 | BIT 2 | BIT 1 | BIT 0 | FUNCTION    |   RANGE     |
+|  00h  |   0   |      10 Seconds        |            Seconds            |  Seconds    |   00-59     |
+|  01h  |   0   |      10 Minutes        |            Minutes            |  Minutes    |   00-59     |
+|  02h  |   0   | 12/24 | PM/AM |10 Hour |              Hour             |  Hours      |1-12 + PM/AM |
+|       |       |       |20 Hour|        |                               |             |   00-23     |
+|  03h  |   0   |   0   |   0   |   0    |   0   |      Day              | Day of Week |1-7 User Def |
+|  04h  |   0   |   0   |    10 Date     |              Date             |  Date       |   01-31     |
+|  05h  |Century|   0   |   0   |10 Month|             Month             |Month/Century|01-12+Century|
+|  06h  |           10 Year              |              Year             |  Year       |   00-99     |
+|  07h  | A1M1  |      10 Seconds        |            Seconds            |Alarm 1 Sec  |   00-59     |
+|  08h  | A1M2  |      10 Minutes        |            Minutes            |Alarm 1 Min  |   00-59     |
+|  09h  | A1M3  | 12/24 | PM/AM |10 Hour |              Hour             |Alarm 1 Hours|1-12 + PM/AM |
+|       |       |       |20 Hour|        |                               |             |             |
+|  0Ah  | A1M4  | DY/DT |    10 Date     |              Day              |Alarm 1 Day  |    1-7      |
+|       |       |       |                |              Date             |Alarm 1 Date |    1-31     |
+|  0Bh  | A2M2  |      10 Minutes        |            Minutes            |Alarm 2 Min  |   00-59     |
+|  0Ch  | A2M3  | 12/24 | PM/AM |10 Hour |              Hour             |Alarm 2 Hours|1-12 + AM/PM |
+|       |       |       |20 Hour|        |                               |             |   00-23     |
+|  0Dh  | A2M4  | DY/DT |    10 Date     |              Day              |Alarm 2 Day  |    1-7      |
+|       |       |       |                |              Date             |Alarm 2 Date |    1-31     |
+|  0Eh  | EOSC  | BBSQW | CONV  |  RS2   |  RS1  | INTCN |  A2IE | A1IE  |  Control    |     —       |
+|  0Fh  |  OSF  |   0   |   0   |   0    |EN32kHz|  BSY  |  A2F  | A1F   |Contrl/Status|     —       |
+|  10h  | SIGN  | DATA  | DATA  | DATA   | DATA  | DATA  | DATA  | DATA  |Aging Offset |     —       |
+|  11h  | SIGN  | DATA  | DATA  | DATA   | DATA  | DATA  | DATA  | DATA  |MSB of Temp  |     —       |
+|  12h  | DATA  | DATA  |   0   |   0    |   0   |   0   |   0   |   0   |LSB of Temp  |     —       |
+|====================================================================================================*/
+// Notes:
+// The numeric values stored to / read from the DS3231 for seconds, minutes, hours, day, date, month, year,
+// use BCD encoding.
+
+extern I2C_HandleTypeDef hi2c1; // main.c
 
 // DS3231 registers use BCD encoding for time/date storage.
 // This requires BCD to BIN and BIN to BCD functions to convert back and forth
 static uint8_t bin2bcd (uint8_t val) { return val + 6 * (val / 10); }
 static uint8_t bcd2bin (uint8_t val) { return val - 6 * (val >> 4); }
 
+#if 0
 //=============================================================================
 // Initialize the DS3231, clear the OSF bit, enable the device to begin counting
-// Configure Control register and Status register as follows:
-//      Control Register (0Eh)
-//      +-------+-------+-------+-------+-------+-------+-------+-------+
-// BIT  | BIT 7 | BIT 6 | BIT 5 | BIT 4 | BIT 3 | BIT 2 | BIT 1 | BIT 0 |
-// NAME | /EOSC | BBSQW | CONV  |  RS2  |  RS1  | INTCN | A2IE  | A1IE  |
-// POR  |   0   |   0   |   0   |   1   |   1   |   1   |   0   |   0   |
-//      +-------+-------+-------+-------+-------+-------+-------+-------+
-//      Status Register (0Fh)
-//      +-------+-------+-------+-------+-------+-------+-------+-------+
-// BIT  | BIT 7 | BIT 6 | BIT 5 | BIT 4 | BIT 3 | BIT 2 | BIT 1 | BIT 0 |
-// NAME |  OSF  |       |       |       |EN32KHz|  BSY  |  A2F  |  A1F  |
-// POR  |   1   |   0   |   0   |   0   |   1   |   X   |   X   |   X   |
-//      +-------+-------+-------+-------+-------+-------+-------+-------+
+//=============================================================================
 
-extern I2C_HandleTypeDef hi2c1; // main.c
-
+// Values to write to DS3231 for a "reset" condition
 const DATE_TIME dt_reset = {
 	0,  //< Year offset from 2000
 	1,  //< Month 1-12
@@ -66,6 +88,29 @@ HAL_StatusTypeDef init_ds3231(void)
 		rc = write_ds3231(&dt_reset);
 	}
 	return rc;
+}
+#endif
+
+//=============================================================================
+
+// Return the value of the status register (index 0Fh)
+uint8_t ds3231_read_status(void)
+{
+  // Read value of status register into reg_data
+	uint8_t index = 0x0F;
+	uint8_t reg_data;
+	i2c_write_read(DS3231_ADDRESS, &index, sizeof(index), &reg_data, sizeof(reg_data));
+  return reg_data;
+}
+
+//=============================================================================
+
+void ds3231_clearOSF(void)
+{
+	// Clear the status register (index 0Fh) OSF bit
+  printf("Clear OSF\n");
+	uint8_t index_status[2] = {0x0F, 0x00}; // index of status register and value to write to it
+	i2c_write_read(DS3231_ADDRESS, index_status, sizeof(index_status), NULL, 0);
 }
 
 //=============================================================================
@@ -129,9 +174,9 @@ int cl_time(void)
 		dt.mm = strtol(argv[2], NULL, 10);
 		dt.ss = strtol(argv[3], NULL, 10);
 		// Write new time values to DS3231
-		//printf("Writing time values - -  %02u:%02u:%02u\r\n",dt.hh,dt.mm,dt.ss);
-		printf("Writing time values...\r\n");
 		write_ds3231(&dt);
+	    // Reset the OSF bit
+	    ds3231_clearOSF();
 	}
 
 	// Always read the DS3231 and display the time
@@ -153,9 +198,7 @@ int cl_date(void)
 		uint16_t year = strtol(argv[3], NULL, 10);
 		if(year >= 2000) year -= 2000; // convert to offset
 		dt.yOff = (uint8_t)year;
-		// Write new time values to DS3231
-		//printf("Writing date values - -  %02u/%02u/%04u\r\n",dt.d,dt.m,dt.yOff+2000);
-		printf("Writing date values...\r\n");
+		// Write new date values to DS3231
 		write_ds3231(&dt);
 	}
 
@@ -164,3 +207,25 @@ int cl_date(void)
 	printf("%02u/%02u/%04u\r\n",dt.d,dt.m,dt.yOff + 2000);
 	return 0;
 }
+
+
+// Dump the values of the 19 DS3231 index registers 00h - 12h
+// Use a "generic I2C API" to read index registers 00h - 12h
+// Read the DS3231 time/date registers into a DATE_TIME structure
+int cl_ds3231_dump(void)
+{
+    uint8_t index = 0;
+    uint8_t reg_data[19];
+    const char * reg_name[]={"Seconds","Minutes","Hours","WeekDay","Date","Month","Year",
+        "Alarm1 Sec","Alarm1 Min","Alarm1 Hr","Alarm1 Day-Date",
+        "Alarm2 Min","Alarm2 Hr","Alarm2 Day-Date",
+        "Control","Cntrl/Status","Aging Offset","MSB of Temp","LSB of Temp"};
+    i2c_write_read(DS3231_ADDRESS, &index, sizeof(index), reg_data, sizeof(reg_data));
+    printf("Indx Data   Register name\n");
+    for(unsigned i=0;i<19;i++) {
+        printf("%02X   0x%02X   %s\n",i,reg_data[i],reg_name[i]);
+    }
+	printf("\n");
+	return 0;
+}
+

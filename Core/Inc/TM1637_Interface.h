@@ -44,6 +44,7 @@ extern uint16_t timer_delay_us(uint16_t delay_us);
 void tm1637_test(void);
 void init_tm1637(void);
 void update_clock(void);
+int cl_tm1637_count(void);
 
 #ifdef __cplusplus
 }

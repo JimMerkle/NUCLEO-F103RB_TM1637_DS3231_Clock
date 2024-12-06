@@ -40,6 +40,8 @@
     that increments each second.  The STM32 HAL provides an interface for
     years, months, days, hours, minutes, seconds (normal RTC stuff),
     allowing the developer to work with these normal units.
+    Be sure to remove/rotate 45 degrees the charging diode.
+    Don't want your CR2032 being destroyed!
     
 ## Using DS3231 RTC for real-time management
     
