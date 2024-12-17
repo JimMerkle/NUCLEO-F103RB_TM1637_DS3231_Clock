@@ -33,8 +33,6 @@ typedef struct {
 
 // function prototype
 int cl_tm1637_count(void);
-int cl_i2c_write(void);
-int cl_i2c_read(void);
 
 const COMMAND_ITEM cmd_table[] = {
     {"?",         "display help menu",                            1, cl_help},
@@ -52,6 +50,7 @@ const COMMAND_ITEM cmd_table[] = {
 	{"time",      "time <hh mm ss> to set, no params to read",    1, cl_time},
 	{"date",      "date <day month year>",                        1, cl_date},
     {"dump",      "dump the DS3231 register data",                1, cl_ds3231_dump},
+    {"sqw",       "sqw <0: 1Hz, 1: 1024Hz, 2: 4096Hz, 3: 8192Hz>",1, cl_sqw_test},
 	{"count",     "tm1637 test",                                  1, cl_tm1637_count},
 
     {NULL,NULL,0,NULL}, /* end of table */

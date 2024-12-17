@@ -21,7 +21,8 @@ extern "C" {
 int cl_i2c_validate_address(uint16_t i2c_address); // I2C helper function that validates I2C address is within range
 HAL_StatusTypeDef i2c_write_read(uint16_t DevAddress, uint8_t * write_data, uint16_t write_count, uint8_t * read_data, uint16_t read_count);
 int cl_i2c_scan(void);
-
+int cl_i2c_write(void);
+int cl_i2c_read(void);
 
 #ifdef __cplusplus
 } /* extern "C" */
