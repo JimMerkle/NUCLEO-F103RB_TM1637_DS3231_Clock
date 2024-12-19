@@ -247,23 +247,77 @@ int cl_sqw_test(void)
     printf("0X%02X written to index 0Eh\n",RSx);
   }
   else {
-    // no arguments
-#if 0
-    DATE_TIME dt;
-    printf("Setting alarm for 3 seconds from now...\n");
-    // Get current time and convert it to unix seconds count
-    read_ds3231(&dt); // fill in DATE_TIME structure
-    uint32_t ut_now = rtc2unix(&dt);
-    uint32_t ut_future = ut_now + 3;
-    // Convert back into DATE-TIME format
-    unix2rtc(&dt, ut_future); // DATE_TIME is now 3 seconds in the future
-#else
+    // no command line arguments
     printf("%s: Turn off SQW output\n",__func__);
     uint8_t index_data[2] = {0x0E,0x1C}; // write default (POR) value, turning off SQW output
     i2c_write_read(DS3231_ADDRESS, index_data, sizeof(index_data), NULL, 0);
-#endif
   }
-
   return 0;
 }
+
+// Configure SQW/INT pin for alarm interrupt output)
+// Spin, watching the A1F flash
+// Example serial output:
+//   Display status of A1F flag...
+//   Press any key to exit...
+//   000000000000000000000011111111111111111111111111   (22 '0's, 200ms delay each)
+// This command works great, except it doesn't reset....  May need to write 1's to bits to clear them vs 0
+int cl_alarm(void)
+{
+	// Begin by disabling the alarm - Read Control register, index 0Eh
+	uint8_t index = 0x0E;
+	uint8_t control_reg;
+	i2c_write_read(DS3231_ADDRESS, &index, sizeof(index), &control_reg, sizeof(control_reg));
+
+	control_reg &= 0xFC; // Clear alarm enable bits,
+	control_reg |= 4;    // Set INTCN to 1 (Let's use SQW/INT pin for alarm interrupt output)
+	uint8_t index_control[3] = {index,control_reg,0};
+
+	// Write modified control register value back
+	i2c_write_read(DS3231_ADDRESS, index_control, sizeof(index_control), NULL, 0);
+
+	// Clear any alarm bits in the status register (write 0s to them)
+	// Moved this functionality into the write above (the 3rd byte)
+	//uint8_t index_status[2]={0x0F, 0x00};
+	//i2c_write_read(DS3231_ADDRESS, index_status, sizeof(index_status), NULL, 0);
+
+    DATE_TIME dt;
+    printf("Setting alarm for 5 seconds from now...\n");
+    // Get current time and convert it to unix seconds count
+    read_ds3231(&dt); // fill in DATE_TIME structure
+    uint32_t ut_now = rtc2unix(&dt);
+    uint32_t ut_future = ut_now + 5; // 5 seconds from now
+    // Convert back into DATE-TIME format
+    unix2rtc(&dt, ut_future); // DATE_TIME is now 3 seconds in the future
+
+    // If we wish to alarm on a second boundary, we need to use Alarm1 that includes a seconds register
+    // Looking at Table 2. Alarm Mask Bits, we want A1M4:A1M1 set as 0b1000, Alarm when hours, minutes, and seconds match
+    uint8_t index_7_8_9_A[5]={7, bin2bcd(dt.ss), bin2bcd(dt.mm), bin2bcd(dt.hh), bin2bcd(dt.d)|0x80}; // Set A1M4 bit
+
+	// Load Alarm1 registers
+	i2c_write_read(DS3231_ADDRESS, index_7_8_9_A, sizeof(index_7_8_9_A), NULL, 0);
+
+	// Enable Alarm1 interrupt
+	index_control[1]|=1;
+	i2c_write_read(DS3231_ADDRESS, index_control, sizeof(index_control), NULL, 0);
+
+	// Dump registers as we begin to wait
+	cl_ds3231_dump();
+
+	// While we wait, show the status of A1F
+	index = 0x0F;
+	uint8_t status;
+	printf("Display status of A1F flag...\nPress any key to exit...\n");
+
+	while(EOF == __io_getchar() ) {
+		i2c_write_read(DS3231_ADDRESS, &index, sizeof(index), &status, sizeof(status));
+		//printf("\b \b%c",(status&1)?'1':'0');
+		printf("%c",(status&1)?'1':'0');
+		HAL_Delay(200); // display a '1' or '0' every 200ms
+	}
+	printf("\n");
+
+    return 0;
+}
+
 

@@ -52,6 +52,7 @@ const COMMAND_ITEM cmd_table[] = {
     {"dump",      "dump the DS3231 register data",                1, cl_ds3231_dump},
     {"sqw",       "sqw <0: 1Hz, 1: 1024Hz, 2: 4096Hz, 3: 8192Hz>",1, cl_sqw_test},
 	{"count",     "tm1637 test",                                  1, cl_tm1637_count},
+	{"alarm",     "set alarm for 5 seconds, watch A1F flag",      1, cl_alarm},
 
     {NULL,NULL,0,NULL}, /* end of table */
 };
